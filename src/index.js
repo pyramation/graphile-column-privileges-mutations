@@ -12,7 +12,7 @@ app.use(
     graphiql: true,
     enhanceGraphiql: true,
     enableCors: true,
-    skipPlugins: [NodePlugin],
+    // skipPlugins: [NodePlugin],
     dynamicJson: true,
     appendPlugins: [
       PgSimplifyInflectorPlugin,

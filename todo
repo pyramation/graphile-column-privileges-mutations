@@ -1,0 +1,5 @@
+- [x] replace * with list of primary keys
+- [x] remove temp table, and replace w delete/update followed by a query
+- [x] dont select deleted rows
+- [ ] remove subject and subjectEdge from the delete mutation payload
+- [ ] fix deletedProjectNodeId

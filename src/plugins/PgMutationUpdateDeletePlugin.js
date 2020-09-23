@@ -38,10 +38,10 @@ export default (async function PgMutationUpdateDeletePlugin(
         inflection,
         pgQueryFromResolveData: queryFromResolveData,
         pgOmit: omit,
-        pgViaTemporaryTable: viaTemporaryTable,
         describePgEntity,
         sqlCommentByAddingTags,
-        pgField
+        pgField,
+        pgPrepareAndRun
       } = build;
       const {
         scope: { isRootMutation },
@@ -86,7 +86,8 @@ export default (async function PgMutationUpdateDeletePlugin(
                 args,
                 condition,
                 context,
-                resolveContext
+                resolveContext,
+                keyColumns
               ) {
                 const { input } = args;
                 const parsedResolveInfoFragment = parseResolveInfo(resolveInfo);
@@ -102,6 +103,18 @@ export default (async function PgMutationUpdateDeletePlugin(
                 );
 
                 let sqlMutationQuery;
+
+                const sqlKeyList = keyColumns.map(key =>
+                  sql.identifier(key.name)
+                );
+
+                const sqlKeys = sql.join(sqlKeyList, ',');
+
+                const sqlFullTableName = sql.identifier(
+                  table.namespace.name,
+                  table.name
+                );
+
                 if (mode === 'update') {
                   const sqlColumns = [];
                   const sqlValues = [];
@@ -127,19 +140,19 @@ export default (async function PgMutationUpdateDeletePlugin(
                     return null;
                   }
                   sqlMutationQuery = sql.query`\
-update ${sql.identifier(table.namespace.name, table.name)} set ${sql.join(
+update ${sqlFullTableName} set ${sql.join(
                     sqlColumns.map(
                       (col, i) => sql.fragment`${col} = ${sqlValues[i]}`
                     ),
                     ', '
                   )}
 where ${condition}
-returning *`;
+returning ${sqlKeys}`;
                 } else {
                   sqlMutationQuery = sql.query`\
-delete from ${sql.identifier(table.namespace.name, table.name)}
+delete from ${sqlFullTableName}
 where ${condition}
-returning *`;
+returning ${sqlKeys}`;
                 }
 
                 const modifiedRowAlias = sql.identifier(Symbol());
@@ -153,16 +166,41 @@ returning *`;
                   resolveInfo.rootValue
                 );
                 let row;
+                let rowWasFound;
                 try {
                   await pgClient.query('SAVEPOINT graphql_mutation');
-                  const rows = await viaTemporaryTable(
-                    pgClient,
-                    sqlTypeIdentifier,
-                    sqlMutationQuery,
-                    modifiedRowAlias,
-                    query
-                  );
-                  row = rows[0];
+                  const {
+                    rows: [result]
+                  } = await pgClient.query(sql.compile(sqlMutationQuery));
+                  rowWasFound = !!result;
+                  if (result && mode === 'update') {
+                    const query = queryFromResolveData(
+                      sqlFullTableName,
+                      undefined,
+                      resolveData,
+                      { useAsterisk: false },
+                      queryBuilder => {
+                        const sqlTableAlias = queryBuilder.getTableAlias();
+                        keyColumns.forEach(key => {
+                          queryBuilder.where(
+                            sql.fragment`${sqlTableAlias}.${sql.identifier(
+                              key.name
+                            )} = ${gql2pg(
+                              result[key.name],
+                              key.type,
+                              key.typeModifier
+                            )}`
+                          );
+                        });
+                      },
+                      resolveContext,
+                      resolveInfo.rootValue
+                    );
+                    const { text, values } = sql.compile(query);
+                    ({
+                      rows: [row]
+                    } = await pgPrepareAndRun(pgClient, text, values));
+                  }
                   await pgClient.query('RELEASE SAVEPOINT graphql_mutation');
                 } catch (e) {
                   await pgClient.query(
@@ -170,7 +208,7 @@ returning *`;
                   );
                   throw e;
                 }
-                if (!row) {
+                if (!rowWasFound) {
                   throw new Error(
                     `No values were ${mode}d in collection '${inflection.pluralize(
                       inflection._singularizedTableName(table)
@@ -215,18 +253,7 @@ returning *`;
                             description:
                               'The exact same `clientMutationId` that was provided in the mutation input, unchanged and unused. May be used by a client to track mutations.',
                             type: GraphQLString
-                          },
-                          [tableName]: pgField(
-                            build,
-                            fieldWithHooks,
-                            tableName,
-                            {
-                              description: `The \`${tableTypeName}\` that was ${mode}d by this mutation.`,
-                              type: Table
-                            },
-                            {},
-                            false
-                          )
+                          }
                         },
                         mode === 'delete'
                           ? {
@@ -263,7 +290,19 @@ returning *`;
                                 }
                               )
                             }
-                          : null
+                          : {
+                              [tableName]: pgField(
+                                build,
+                                fieldWithHooks,
+                                tableName,
+                                {
+                                  description: `The \`${tableTypeName}\` that was ${mode}d by this mutation.`,
+                                  type: Table
+                                },
+                                {},
+                                false
+                              )
+                            }
                       );
                     }
                   },
@@ -279,7 +318,7 @@ returning *`;
                     isMutationPayload: true,
                     isPgUpdatePayloadType: mode === 'update',
                     isPgDeletePayloadType: mode === 'delete',
-                    pgIntrospection: table
+                    ...(mode === 'update' ? { pgIntrospection: table } : null)
                   }
                 );
 
@@ -404,7 +443,8 @@ returning *`;
                                     ') and ('
                                   )})`,
                                   context,
-                                  resolveContext
+                                  resolveContext,
+                                  primaryKeys
                                 );
                               } catch (e) {
                                 debug(e);
@@ -552,7 +592,8 @@ returning *`;
                                   ') and ('
                                 )})`,
                                 context,
-                                resolveContext
+                                resolveContext,
+                                keys
                               );
                             }
                           };
