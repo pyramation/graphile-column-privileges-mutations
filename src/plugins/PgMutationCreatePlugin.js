@@ -35,7 +35,8 @@ export default (function PgMutationCreatePlugin(
         pgViaTemporaryTable: viaTemporaryTable,
         describePgEntity,
         sqlCommentByAddingTags,
-        pgField
+        pgField,
+        pgPrepareAndRun
       } = build;
       const {
         scope: { isRootMutation },
@@ -53,6 +54,11 @@ export default (function PgMutationCreatePlugin(
           if (!table.namespace) return memo;
           if (!table.isSelectable) return memo;
           if (!table.isInsertable || omit(table, 'create')) return memo;
+
+          const primaryKeyConstraint = table.primaryKeyConstraint;
+          if (!primaryKeyConstraint) return memo;
+
+          const keyColumns = primaryKeyConstraint.keyAttributes;
 
           const Table = pgGetGqlTypeByTypeIdAndModifier(table.type.id, null);
           if (!Table) {
@@ -194,6 +200,18 @@ export default (function PgMutationCreatePlugin(
                         resolveContext,
                         resolveInfo.rootValue
                       );
+
+                      const sqlKeyList = keyColumns.map(key =>
+                        sql.identifier(key.name)
+                      );
+
+                      const sqlKeys = sql.join(sqlKeyList, ',');
+
+                      const sqlFullTableName = sql.identifier(
+                        table.namespace.name,
+                        table.name
+                      );
+
                       const sqlColumns = [];
                       const sqlValues = [];
                       const inputData = input[inflection.tableFieldName(table)];
@@ -221,19 +239,43 @@ insert into ${sql.identifier(table.namespace.name, table.name)} ${
                               ', '
                             )}) values(${sql.join(sqlValues, ', ')})`
                           : sql.fragment`default values`
-                      } returning *`;
+                      } returning ${sqlKeys}`;
 
                       let row;
                       try {
                         await pgClient.query('SAVEPOINT graphql_mutation');
-                        const rows = await viaTemporaryTable(
-                          pgClient,
-                          sql.identifier(table.namespace.name, table.name),
-                          mutationQuery,
-                          insertedRowAlias,
-                          query
+
+                        const {
+                          rows: [result]
+                        } = await pgClient.query(sql.compile(mutationQuery));
+
+                        const query = queryFromResolveData(
+                          sqlFullTableName,
+                          undefined,
+                          resolveData,
+                          { useAsterisk: false },
+                          queryBuilder => {
+                            const sqlTableAlias = queryBuilder.getTableAlias();
+                            keyColumns.forEach(key => {
+                              queryBuilder.where(
+                                sql.fragment`${sqlTableAlias}.${sql.identifier(
+                                  key.name
+                                )} = ${gql2pg(
+                                  result[key.name],
+                                  key.type,
+                                  key.typeModifier
+                                )}`
+                              );
+                            });
+                          },
+                          resolveContext,
+                          resolveInfo.rootValue
                         );
-                        row = rows[0];
+                        const { text, values } = sql.compile(query);
+                        ({
+                          rows: [row]
+                        } = await pgPrepareAndRun(pgClient, text, values));
+
                         await pgClient.query(
                           'RELEASE SAVEPOINT graphql_mutation'
                         );
