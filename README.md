@@ -4,7 +4,7 @@
 npm install graphile-column-privileges-mutations 
 ```
 
-This [http://postgraphile.org/](Graphile) plugin was built to enable use of column-level SELECT grants, while still providing auto-generated mutations within graphile. It works by using primary or unique constraints.
+This [PostGraphile](http://postgraphile.org/) schema plugin was built to enable use of column-level SELECT grants, while still providing auto-generated mutations within PostGraphile. It works by using primary or unique constraints.
 
 To give you a sense of why/where this plugin was born: https://github.com/graphile/graphile-engine/issues/260
 
