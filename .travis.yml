@@ -1,12 +1,16 @@
+os:
+  - linux
+  - osx
 language: node_js
+node_js:
+  - "10"
+  - "12"
 cache:
   yarn: true
   directories:
     - node_modules
 notifications:
   email: false
-node_js:
-  - node
 services:
   - docker
 env:
@@ -21,7 +25,7 @@ env:
 
 before_install:
   - yarn install
-  - docker run -p 7777:5432 --name postgres pyramation/postgres
+  - docker run -d -p 7777:5432 --name postgres pyramation/postgres
   - sleep 3
   - while ! docker exec -it postgres pg_isready -U postgres -h 127.0.0.1; do echo "$(date) - waiting for database to start"; sleep 1; done
   - createdb mutation_example
