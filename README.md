@@ -36,11 +36,12 @@ Example with app users and select grants here:
 https://github.com/pyramation/graphile-column-select-grants-example
 
 
-## testing
+## Testing
 
 ```sh
 createdb mutation_example
 psql mutation_example < sql/roles.sql
 psql mutation_example < sql/user.sql
 psql mutation_example < sql/schema.sql
+yarn test
 ```
