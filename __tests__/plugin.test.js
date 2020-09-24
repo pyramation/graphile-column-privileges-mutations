@@ -1,5 +1,12 @@
 import { GraphQLTest } from '../utils/graphql';
-import { CreateUserMutation, CreateUserMutationBad } from '../utils/queries';
+import {
+  CreateUserMutation,
+  CreateUserMutationBad,
+  DeleteUserMutation,
+  DeleteUserMutationBad,
+  UpdateUserMutation,
+  UpdateUserMutationBad
+} from '../utils/queries';
 import env from '../utils/env';
 import { snapshot } from '../utils/clean';
 import { PgMutationCreatePlugin, PgMutationUpdateDeletePlugin } from '../src';
@@ -37,37 +44,107 @@ afterAll(async () => {
   await teardown();
 });
 
-it('allows select without password', async () => {
-  await graphQL(async (query, pgClient) => {
-    const { data } = await query(CreateUserMutation, {
-      email: 'pyramation@example.com',
-      username: 'pyramation',
-      password: 'password'
+describe('create', () => {
+  it('success', async () => {
+    await graphQL(async (query, pgClient) => {
+      const data = await query(CreateUserMutation, {
+        email: 'pyramation@example.com',
+        username: 'pyramation',
+        password: 'password'
+      });
+
+      expect(snapshot(data)).toMatchSnapshot();
+
+      // ensure password exists
+      await pgClient.query("select set_config('role', $1, true)", ['postgres']);
+      const {
+        rows: [row]
+      } = await pgClient.query(
+        table.select(['id', 'email', 'username', 'password'], {
+          username: 'pyramation'
+        })
+      );
+      expect(snapshot(row)).toMatchSnapshot();
     });
+  });
 
-    expect(snapshot(data)).toMatchSnapshot();
-
-    // ensure password exists
-    await pgClient.query("select set_config('role', $1, true)", ['postgres']);
-    const {
-      rows: [row]
-    } = await pgClient.query(
-      table.select(['id', 'email', 'username', 'password'], {
-        username: 'pyramation'
-      })
-    );
-    expect(snapshot(row)).toMatchSnapshot();
+  it('error', async () => {
+    await graphQL(async query => {
+      const { data, errors } = await query(CreateUserMutationBad, {
+        email: 'pyramation@example.com',
+        username: 'pyramation',
+        password: 'password'
+      });
+      expect(errors).toBeTruthy();
+      expect(errors[0].message).toMatchSnapshot();
+    });
   });
 });
 
-it('disallows password on select', async () => {
-  await graphQL(async query => {
-    const { data, errors } = await query(CreateUserMutationBad, {
-      email: 'pyramation@example.com',
-      username: 'pyramation',
-      password: 'password'
+describe('delete', () => {
+  it('success', async () => {
+    await graphQL(async (query, pgClient) => {
+      const data = await query(DeleteUserMutation, {
+        username: 'deleteme'
+      });
+
+      expect(snapshot(data)).toMatchSnapshot();
+
+      await pgClient.query("select set_config('role', $1, true)", ['postgres']);
+      const {
+        rows: [row]
+      } = await pgClient.query(
+        table.select(['*'], {
+          username: 'deleteme'
+        })
+      );
+      expect(snapshot(row)).toMatchSnapshot();
     });
-    expect(errors).toBeTruthy();
-    expect(errors[0].message).toMatchSnapshot();
+  });
+
+  it('error', async () => {
+    await graphQL(async query => {
+      const { data, errors } = await query(DeleteUserMutationBad, {
+        username: 'deleteme'
+      });
+      expect(errors).toBeTruthy();
+      expect(errors[0].message).toMatchSnapshot();
+    });
+  });
+});
+
+describe('update', () => {
+  it('success', async () => {
+    await graphQL(async (query, pgClient) => {
+      const data = await query(UpdateUserMutation, {
+        username: 'updateme',
+        password: 'newpassword',
+        newname: 'newname'
+      });
+
+      expect(snapshot(data)).toMatchSnapshot();
+
+      await pgClient.query("select set_config('role', $1, true)", ['postgres']);
+      const {
+        rows: [row]
+      } = await pgClient.query(
+        table.select(['*'], {
+          username: 'newname'
+        })
+      );
+      expect(snapshot(row)).toMatchSnapshot();
+    });
+  });
+
+  it('error', async () => {
+    await graphQL(async query => {
+      const { data, errors } = await query(UpdateUserMutationBad, {
+        username: 'updateme',
+        password: 'newpassword',
+        newname: 'newname'
+      });
+      expect(errors).toBeTruthy();
+      expect(errors[0].message).toMatchSnapshot();
+    });
   });
 });

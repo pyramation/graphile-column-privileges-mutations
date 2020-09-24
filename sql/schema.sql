@@ -16,5 +16,9 @@ GRANT SELECT (id, username, email) ON TABLE app_public.users TO authenticated;
 GRANT UPDATE (username, email, PASSWORD) ON TABLE app_public.users TO authenticated;
 GRANT DELETE ON TABLE app_public.users TO authenticated;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA app_public TO authenticated;
+INSERT INTO app_public.users (username, email, PASSWORD)
+    VALUES ('deleteme', 'deleteme@example.com', 'password');
+INSERT INTO app_public.users (username, email, PASSWORD)
+    VALUES ('updateme', 'updateme@example.com', 'password');
 COMMIT;
 

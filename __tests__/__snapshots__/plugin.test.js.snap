@@ -1,18 +1,22 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`allows select without password 1`] = `
+exports[`create error 1`] = `"permission denied for table users"`;
+
+exports[`create success 1`] = `
 Object {
-  "createUser": Object {
-    "user": Object {
-      "email": "pyramation@example.com",
-      "id": "[ID]",
-      "username": "pyramation",
+  "data": Object {
+    "createUser": Object {
+      "user": Object {
+        "email": "pyramation@example.com",
+        "id": "[ID]",
+        "username": "pyramation",
+      },
     },
   },
 }
 `;
 
-exports[`allows select without password 2`] = `
+exports[`create success 2`] = `
 Object {
   "email": "pyramation@example.com",
   "id": "[ID]",
@@ -21,4 +25,41 @@ Object {
 }
 `;
 
-exports[`disallows password on select 1`] = `"permission denied for table users"`;
+exports[`delete error 1`] = `"Cannot query field \\"user\\" on type \\"DeleteUserPayload\\"."`;
+
+exports[`delete success 1`] = `
+Object {
+  "data": Object {
+    "deleteUserByUsername": Object {
+      "clientMutationId": null,
+    },
+  },
+}
+`;
+
+exports[`delete success 2`] = `undefined`;
+
+exports[`update error 1`] = `"permission denied for table users"`;
+
+exports[`update success 1`] = `
+Object {
+  "data": Object {
+    "updateUserByUsername": Object {
+      "user": Object {
+        "email": "updateme@example.com",
+        "id": "[ID]",
+        "username": "newname",
+      },
+    },
+  },
+}
+`;
+
+exports[`update success 2`] = `
+Object {
+  "email": "updateme@example.com",
+  "id": "[ID]",
+  "password": "newpassword",
+  "username": "newname",
+}
+`;
