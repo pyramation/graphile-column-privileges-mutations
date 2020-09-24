@@ -10,6 +10,6 @@ module.exports = (api) => {
       '@babel/proposal-export-default-from',
       'macros'
     ],
-    presets: useESModules ? ['@babel/react'] : ['@babel/env', '@babel/react']
+    presets: useESModules ? [] : ['@babel/env']
   };
 };

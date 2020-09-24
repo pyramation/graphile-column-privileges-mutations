@@ -1,15 +1,7 @@
 import debugFactory from 'debug';
-
 const debug = debugFactory('graphile-build-pg');
 
-export default (function PgMutationCreatePlugin(
-  builder,
-  { pgDisableDefaultMutations }
-) {
-  // if (pgDisableDefaultMutations) {
-  //   return;
-  // }
-
+export default (function PgMutationCreatePlugin(builder) {
   builder.hook(
     'GraphQLObjectType:fields',
     (fields, build, context) => {
