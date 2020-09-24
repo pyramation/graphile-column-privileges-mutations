@@ -1,6 +1,6 @@
 {
   "name": "graphile-column-privileges-mutations",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "graphile mutations for tables with column privileges",
   "author": "Dan Lynch <pyramation@gmail.com>",
   "homepage": "https://github.com/pyramation/graphile-column-privileges-mutations#readme",
