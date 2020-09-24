@@ -27,3 +27,7 @@ app.use(
   })
 );
 ```
+
+## Examples
+
+Example with app users and select grants here: https://github.com/pyramation/graphile-column-select-grants-example
