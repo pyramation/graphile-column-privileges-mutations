@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`allows select without password 1`] = `
+Object {
+  "createUser": Object {
+    "user": Object {
+      "email": "pyramation@example.com",
+      "id": "[ID]",
+      "username": "pyramation",
+    },
+  },
+}
+`;
+
+exports[`allows select without password 2`] = `
+Object {
+  "email": "pyramation@example.com",
+  "id": "[ID]",
+  "password": "password",
+  "username": "pyramation",
+}
+`;
+
+exports[`disallows password on select 1`] = `"permission denied for table users"`;
