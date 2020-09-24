@@ -1,4 +1,4 @@
-# graphile-column-privileges-mutations 
+# graphile-column-privileges-mutations [![Build Status](https://travis-ci.org/pyramation/graphile-column-privileges-mutations.svg?branch=master)](https://travis-ci.org/pyramation/graphile-column-privileges-mutations)
 
 ```sh
 npm install graphile-column-privileges-mutations 
