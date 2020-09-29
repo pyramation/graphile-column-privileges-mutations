@@ -1,4 +1,5 @@
-import { GraphQLTest } from '../utils/graphql';
+import '../utils/env';
+import { GraphQLTest, env, snapshot } from 'graphile-test';
 import {
   CreateUserMutation,
   CreateUserMutationBad,
@@ -7,8 +8,6 @@ import {
   UpdateUserMutation,
   UpdateUserMutationBad
 } from '../utils/queries';
-import env from '../utils/env';
-import { snapshot } from '../utils/clean';
 import { PgMutationCreatePlugin, PgMutationUpdateDeletePlugin } from '../src';
 import { Schema } from 'pg-query-string';
 
